@@ -1,0 +1,37 @@
+name: Discord Export
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Запуск каждые 5 минут
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run exporter
+      run: python src/discord_exporter.py
+      env:
+        DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add logs/chat_log.txt logs/progress.txt
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update chat logs [skip ci]" && git push)
